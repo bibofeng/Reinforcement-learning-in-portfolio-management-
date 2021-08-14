@@ -10,6 +10,7 @@ from math import log
 from datetime import datetime
 import time
 import random
+import os
 
 eps=10e-8
 
@@ -20,12 +21,13 @@ def fill_zeros(x):
 class Environment:
     def __init__(self):
         self.cost=0.0025
-
+        self.path = os.path.dirname(__file__)
     def get_repo(self,start_date,end_date,codes_num,market):
         #preprocess parameters
 
         #read all data
-        self.data=pd.read_csv(r'./data/'+market+'.csv',index_col=0,parse_dates=True,dtype=object)
+
+        self.data=pd.read_csv(self.path+ "/"+market+'.csv',index_col=0,parse_dates=True,dtype=object)
         self.data["code"]=self.data["code"].astype(str)
         if market=='China':
             self.data["code"]=self.data["code"].apply(fill_zeros)
@@ -56,7 +58,7 @@ class Environment:
     def get_data(self,start_time,end_time,features,window_length,market,codes):
         self.codes=codes
 
-        self.data = pd.read_csv(r'./data/' + market + '.csv', index_col=0, parse_dates=True, dtype=object)
+        self.data = pd.read_csv(self.path+ "/"+  market + '.csv', index_col=0, parse_dates=True, dtype=object)
         self.data["code"] = self.data["code"].astype(str)
         if market == 'China':
             self.data["code"] = self.data["code"].apply(fill_zeros)
@@ -68,6 +70,8 @@ class Environment:
 
         #Initialize parameters
         self.M=len(codes)+1
+       # self.M=codes+1
+
         self.N=len(features)
         self.L=int(window_length)
         self.date_set=pd.date_range(start_time,end_time)

@@ -20,7 +20,7 @@ class PG:
         self.number=str(number)
         self.type=type
         # Build up models
-        self.sesson = tf.Session()
+        self.sesson = tf.compat.v1.Session()
 
         # Initial input shape
         self.M = M
@@ -29,7 +29,7 @@ class PG:
         self.global_step = tf.Variable(0, trainable=False)
 
         self.state,self.w_previous,self.out=self.build_net()
-        self.future_price=tf.placeholder(tf.float32,[None]+[self.M])
+        self.future_price=tf.compat.v1.placeholder(tf.float32,[None]+[self.M])
         self.pv_vector=tf.reduce_sum(self.out*self.future_price,reduction_indices=[1])*self.pc()
         self.profit=tf.reduce_prod(self.pv_vector)
         self.loss=-tf.reduce_mean(tf.log(self.pv_vector))
@@ -66,7 +66,7 @@ class PG:
 
     # 建立 policy gradient 神经网络 (有改变)
     def build_net(self):
-        state=tf.placeholder(tf.float32,shape=[None]+[self.M]+[self.L]+[self.N],name='market_situation')
+        state=tf.compat.v1.placeholder(tf.float32,shape=[None]+[self.M]+[self.L]+[self.N],name='market_situation')
         network = tflearn.layers.conv_2d(state, 2,
                                          [1, 2],
                                          [1, 1, 1, 1],
@@ -80,7 +80,7 @@ class PG:
                                          'relu',
                                          regularizer="L2",
                                          weight_decay=5e-9)
-        w_previous=tf.placeholder(tf.float32,shape=[None,self.M])
+        w_previous=tf.compat.v1.placeholder(tf.float32,shape=[None,self.M])
         network=tf.concat([network,tf.reshape(w_previous, [-1, self.M, 1, 1])],axis=3)
         network = tflearn.layers.conv_2d(network, 1,
                                          [1, network.get_shape()[2]],

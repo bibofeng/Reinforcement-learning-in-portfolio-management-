@@ -1,5 +1,7 @@
 # Reinforcement learning in portfolio management
 
+* This is a fork from [github liangzp](https://github.com/liangzp/Reinforcement-learning-in-portfolio-management-.git)
+
 ## Introduction
 
 Motivated by "A Deep Reinforcement Learning Framework for the Financial Portfolio Management Problem" by [Jiang et. al. 2017](https://arxiv.org/abs/1706.10059) [1]. In this project:

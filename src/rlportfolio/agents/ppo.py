@@ -80,8 +80,8 @@ def build_summaries():
 class PPO(object):
 
     def __init__(self,predictor,M,L,N,name,load_weights,trainable):
-        self.sess = tf.Session()
-        self.tfs = tf.placeholder(tf.float32, [None, M,L,N], 'state')
+        self.sess = tf.compat.v1.Session()
+        self.tfs = tf.compat.v1.placeholder(tf.float32, [None, M,L,N], 'state')
         self.name=name
 
         self.M=M
@@ -94,7 +94,7 @@ class PPO(object):
         with tf.variable_scope('critic'):
             l1 = con2d(self.tfs,'critic',True)[:,:,0,0]
             self.v = dense(l1,1,'relu','critic',True)
-            self.tfdc_r = tf.placeholder(tf.float32, [None, 1], 'discounted_r')
+            self.tfdc_r = tf.compat.v1.placeholder(tf.float32, [None, 1], 'discounted_r')
             self.advantage = self.tfdc_r - self.v
             self.closs = tf.reduce_mean(tf.square(self.advantage))
 
@@ -113,15 +113,15 @@ class PPO(object):
         with tf.variable_scope('update_oldpi'):
             self.update_oldpi_op = [oldp.assign(p) for p, oldp in zip(pi_params, oldpi_params)]
 
-        self.tfa = tf.placeholder(tf.float32, [None, self.M], 'action')
-        self.tfadv = tf.placeholder(tf.float32, [None, 1], 'advantage')
+        self.tfa = tf.compat.v1.placeholder(tf.float32, [None, self.M], 'action')
+        self.tfadv = tf.compat.v1.placeholder(tf.float32, [None, 1], 'advantage')
         with tf.variable_scope('loss'):
             with tf.variable_scope('surrogate'):
                 # ratio = tf.exp(pi.log_prob(self.tfa) - oldpi.log_prob(self.tfa))
                 ratio = pi.prob(self.tfa) / oldpi.prob(self.tfa)
                 surr = ratio * self.tfadv
             if METHOD['name'] == 'kl_pen':
-                self.tflam = tf.placeholder(tf.float32, None, 'lambda')
+                self.tflam = tf.compat.v1.placeholder(tf.float32, None, 'lambda')
                 kl = tf.distributions.kl_divergence(oldpi, pi)
                 self.kl_mean = tf.reduce_mean(kl)
                 self.aloss = -(tf.reduce_mean(surr - self.tflam * kl))

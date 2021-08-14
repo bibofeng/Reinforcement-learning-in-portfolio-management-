@@ -14,7 +14,7 @@ import datetime
 import os
 import seaborn as sns
 sns.set_style("darkgrid")
-
+from constants import LIB_DIR
 
 eps=10e-8
 epochs=0
@@ -221,13 +221,14 @@ def session(config,args):
     env = Environment()
 
     global M
-    M=codes+1
+    ## M=codes+1
+    M = len(codes) + 1
 
     # if framework == 'DDPG':
     #     print("*-----------------Loading DDPG Agent---------------------*")
     #     from agents.ddpg import DDPG
     #     agent = DDPG(predictor, len(codes) + 1, int(window_length), len(features), '-'.join(agent_config), reload_flag,trainable)
-    #
+    
     # elif framework == 'PPO':
     #     print("*-----------------Loading PPO Agent---------------------*")
     #     from agents.ppo import PPO
@@ -235,7 +236,7 @@ def session(config,args):
 
 
     stocktrader=StockTrader()
-    PATH_prefix = "result/PG/" + str(args['num']) + '/'
+    PATH_prefix = args["logpath"] + "/result/PG/" + str(args['num']) + '/'
 
     if args['mode']=='train':
         if not os.path.exists(PATH_prefix):
@@ -253,12 +254,13 @@ def session(config,args):
                            "test_end_date": test_end_date.strftime('%Y-%m-%d'), "codes": codes}, f)
                 print("finish writing config")
         else:
-            with open("result/PG/" + str(args['num']) + '/config.json', 'r') as f:
+            with open(args["libpath"] + '/config.json', 'r') as f:
                 dict_data = json.load(f)
                 print("successfully load config")
-            train_start_date, train_end_date, codes = datetime.datetime.strptime(dict_data['train_start_date'],
-                                                                               '%Y-%m-%d'), datetime.datetime.strptime(
-                dict_data['train_end_date'], '%Y-%m-%d'), dict_data['codes']
+            train_start_date, train_end_date, codes = datetime.datetime.strptime(dict_data['data']['start_date'],
+                                                                               '%Y-%m-%d')\
+                                                    , datetime.datetime.strptime(dict_data['data']['end_date'], '%Y-%m-%d')\
+                                                    , dict_data['session']['codes']
             env.get_data(train_start_date, train_end_date, features, window_length, market, codes)
 
         for noise_flag in ['True']:#['False','True'] to train agents with noise and without noise in assets prices
@@ -266,6 +268,15 @@ def session(config,args):
                 print("*-----------------Loading PG Agent---------------------*")
                 agent = PG(len(codes) + 1, int(window_length), len(features), '-'.join(agent_config), reload_flag,
                            trainable,noise_flag,args['num'])
+            if framework == 'DDPG':
+                print("*-----------------Loading DDPG Agent---------------------*")
+                from agents.ddpg import DDPG
+                agent = DDPG(predictor, len(codes) + 1, int(window_length), len(features), '-'.join(agent_config), reload_flag,trainable)
+            
+            elif framework == 'PPO':
+                print("*-----------------Loading PPO Agent---------------------*")
+                from agents.ppo import PPO
+                agent = PPO(predictor, len(codes) + 1, int(window_length), len(features), '-'.join(agent_config), reload_flag,trainable)
 
             print("Training with {:d}".format(epochs))
             for epoch in range(epochs):
@@ -285,7 +296,7 @@ def session(config,args):
             del agent
 
     elif args['mode']=='test':
-        with open("result/PG/" + str(args['num']) + '/config.json', 'r') as f:
+        with open(args["logpath"] + "/result/PG/" + str(args['num']) + '/config.json', 'r') as f:
             dict_data=json.load(f)
         test_start_date,test_end_date,codes=datetime.datetime.strptime(dict_data['test_start_date'],'%Y-%m-%d'),datetime.datetime.strptime(dict_data['test_end_date'],'%Y-%m-%d'),dict_data['codes']
         env.get_data(test_start_date,test_end_date,features,window_length,market,codes)
@@ -294,15 +305,37 @@ def session(config,args):
 
 def build_parser():
     parser = ArgumentParser(description='Provide arguments for training different DDPG or PPO models in Portfolio Management')
-    parser.add_argument("--mode",choices=['train','test'])
+    parser.add_argument("--mode",choices=['train','test','download'])
     parser.add_argument("--num",type=int)
+    parser.add_argument("--logpath",type=str , default="c:/temp")
+    parser.add_argument("--rootpath",type=str , default=os.path.dirname(__file__))
+    parser.add_argument("--libpath",type=str , default=LIB_DIR)
+ 
     return parser
 
 
-def main():
+ 
+    # parser = build_parser()
+    # args=vars(parser.parse_args())
+    # with open('config.json') as f:
+    #     config=json.load(f)
+    #     if args['mode']=='download':
+    #         from data.download_data import DataDownloader
+    #         data_downloader=DataDownloader(config)
+    #         data_downloader.save_data()
+    #     else:
+    #         session(config,args)
+
+if __name__=="__main__":
     parser = build_parser()
     args=vars(parser.parse_args())
-    with open('config.json') as f:
+
+    print(args["rootpath"])
+    main_path = os.path.dirname(__file__)
+
+
+    fpath = os.path.join(main_path,'config.json')
+    with open( fpath) as f:
         config=json.load(f)
         if args['mode']=='download':
             from data.download_data import DataDownloader
@@ -311,5 +344,3 @@ def main():
         else:
             session(config,args)
 
-if __name__=="__main__":
-    main()
