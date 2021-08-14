@@ -84,7 +84,7 @@ class StockActor:
 
         self.init_op()
 
-        self.action_gradient=tf.compat.v1.placeholder(tf.float32,[None]+[self.M])
+        self.action_gradient=tf.placeholder(tf.float32,[None]+[self.M])
         self.unnormalized_actor_gradients=tf.gradients(self.out,self.network_params,-self.action_gradient)
         self.actor_gradients =self.unnormalized_actor_gradients#list(map(lambda x: tf.div(x, self.batch_size), self.unnormalized_actor_gradients))#self.unnormalized_actor_gradients#list(map(lambda x: tf.div(x, 64), self.unnormalized_actor_gradients))
 
@@ -93,9 +93,9 @@ class StockActor:
         #learning_rate = tf.train.exponential_decay(self.learning_rate, global_step,
                                                    # decay_steps=2000,
                                                    # decay_rate=0.95, staircase=False)
-        self.optimize = tf.compat.v1.train.AdamOptimizer(self.learning_rate).apply_gradients(zip(self.actor_gradients, self.network_params),global_step=global_step)
+        self.optimize = tf.train.AdamOptimizer(self.learning_rate).apply_gradients(zip(self.actor_gradients, self.network_params),global_step=global_step)
 
-        self.precise_action = tf.compat.v1.placeholder(tf.float32, [None]+[self.M])
+        self.precise_action = tf.placeholder(tf.float32, [None]+[self.M])
         self.pre_loss=tf.reduce_sum(tf.square((self.precise_action-self.out)))
 
         #pre_train_learning_rate = tf.train.exponential_decay(10e-4, global_step,decay_steps=2000,decay_rate=0.95, staircase=False)
@@ -103,22 +103,22 @@ class StockActor:
         self.num_trainable_vars = len(self.network_params) + len(self.traget_network_params)
 
     def init_input(self):
-        self.r=tf.compat.v1.placeholder(tf.float32,[None]+[1])
+        self.r=tf.placeholder(tf.float32,[None]+[1])
 
     def init_op(self):
         #update op
-        params=[tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,scope) for scope in self.scopes]
+        params=[tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope) for scope in self.scopes]
         self.network_params=params[0]
         self.traget_network_params=params[1]
         params=zip(params[0],params[1])
-        self.update=[tf.compat.v1.assign(t_a,(1-self.tau)*t_a+self.tau*p_a) for p_a,t_a in params]
+        self.update=[tf.assign(t_a,(1-self.tau)*t_a+self.tau*p_a) for p_a,t_a in params]
 
 
     def build_actor(self,predictor,scope,trainable):
         with tf.name_scope(scope):
-            inputs=tf.compat.v1.placeholder(tf.float32,shape=[None]+[self.M]+[self.L]+[self.N],name='input')
+            inputs=tf.placeholder(tf.float32,shape=[None]+[self.M]+[self.L]+[self.N],name='input')
             x=build_predictor(inputs,predictor,1,scope,trainable=trainable)
-            actions_previous=tf.compat.v1.placeholder(tf.float32,shape=[None]+[self.M])
+            actions_previous=tf.placeholder(tf.float32,shape=[None]+[self.M])
 
             net = tf.add(x,actions_previous)
             w_init=tf.random_uniform_initializer(-0.003,0.003)
@@ -166,8 +166,8 @@ class StockCritic:
 
         self.init_op()
 
-        self.predicted_q_value=tf.compat.v1.placeholder(tf.float32,[None,1])
-        self.loss=tf.compat.v1.losses.mean_squared_error(self.predicted_q_value,self.out)
+        self.predicted_q_value=tf.placeholder(tf.float32,[None,1])
+        self.loss=tf.losses.mean_squared_error(self.predicted_q_value,self.out)
 
         # Optimization Op
         global_step = tf.Variable(0, trainable=False)
@@ -192,9 +192,9 @@ class StockCritic:
 
     def build_critic(self,predictor,scope,trainable):
         with tf.name_scope(scope):
-            states=tf.compat.v1.placeholder(tf.float32,shape=[None]+[self.M,self.L,self.N])
-            actions=tf.compat.v1.placeholder(tf.float32,shape=[None]+[self.M])
-            actions_previous=tf.compat.v1.placeholder(tf.float32,shape=[None]+[self.M])
+            states=tf.placeholder(tf.float32,shape=[None]+[self.M,self.L,self.N])
+            actions=tf.placeholder(tf.float32,shape=[None]+[self.M])
+            actions_previous=tf.placeholder(tf.float32,shape=[None]+[self.M])
             net = build_predictor(states, predictor,5,scope,trainable)
 
             net = tf.add(net, actions)
@@ -225,14 +225,14 @@ def  build_summaries():
     reward=tf.Variable(0.)
     ep_ave_max_q=tf.Variable(0.)
     actor_loss=tf.Variable(0.)
-    tf.compat.v1.summary.scalar('Critic_loss',critic_loss)
-    tf.compat.v1.summary.scalar('Reward',reward)
-    tf.compat.v1.summary.scalar('Ep_ave_max_q',ep_ave_max_q)
-    tf.compat.v1.summary.scalar('Actor_loss',actor_loss)
+    tf.summary.scalar('Critic_loss',critic_loss)
+    tf.summary.scalar('Reward',reward)
+    tf.summary.scalar('Ep_ave_max_q',ep_ave_max_q)
+    tf.summary.scalar('Actor_loss',actor_loss)
 
 
     summary_vars=[critic_loss,reward,ep_ave_max_q,actor_loss]
-    summary_ops=tf.compat.v1.summary.merge_all()
+    summary_ops=tf.summary.merge_all()
     return summary_ops,summary_vars
 
 
@@ -244,7 +244,7 @@ class DDPG:
         self.name=name
 
         #Build up models
-        self.sesson = tf.compat.v1.Session()
+        self.sesson = tf.Session()
         self.actor=StockActor(self.sesson,predictor,M,L,N)
         self.critic=StockCritic(self.sesson,predictor,M,L,N)
 
@@ -268,13 +268,13 @@ class DDPG:
                     self.sesson.run(tf.global_variables_initializer())
             except:
                 print("Could not find old network weights")
-                self.sesson.run(tf.v1.global_variables_initializer())
+                self.sesson.run(tf.global_variables_initializer())
         else:
-            self.sesson.run(tf.v1.global_variables_initializer())
+            self.sesson.run(tf.global_variables_initializer())
 
         if trainable=='True':
             # Initial summary
-            self.summary_writer = tf.compat.v1.summary.FileWriter('./summary/DDPG', self.sesson.graph)
+            self.summary_writer = tf.summary.FileWriter('./summary/DDPG', self.sesson.graph)
             self.summary_ops, self.summary_vars = build_summaries()
 
     #online actor

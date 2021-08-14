@@ -61,8 +61,9 @@ class StockTrader():
     def print_result(self,epoch,agent,noise_flag):
         self.total_reward=math.exp(self.total_reward) * 100
         print('*-----Episode: {:d}, Reward:{:.6f}%-----*'.format(epoch, self.total_reward))
-        agent.write_summary(self.total_reward)
-        agent.save_model()
+        print("## bbf disable agent.write_summary")
+        ## agent.write_summary(self.total_reward)
+        ##agent.save_model()
 
     def plot_result(self):
         pd.Series(self.wealth_history).plot()
